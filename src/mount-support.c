@@ -338,7 +338,8 @@ void sc_setup_mount_profiles(const char *security_tag)
 			flags &= ~MS_RDONLY;
 		}
 		if (hasmntopt(m, "shared") != NULL) {
-		    flags |= MS_SHARED;
+			debug("adding shared flag to %s mountpoint", m->mnt_fsname);
+			flags |= MS_SHARED;
 		}
 		if (mount(m->mnt_fsname, m->mnt_dir, NULL, flags, NULL) != 0) {
 			die("cannot mount %s at %s with options %s",
