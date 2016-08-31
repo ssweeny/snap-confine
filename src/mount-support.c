@@ -220,10 +220,6 @@ void setup_snappy_os_mounts()
 		"/var/lib/snapd",	// to get access to snapd state and seccomp profiles
 		"/var/tmp",	// to get access to the other temporary directory
 		"/run",		// to get /run with sockets and what not
-#ifdef MERGED_USR
-#else
-		"/media",	// access to the users removable devices
-#endif				// MERGED_USR
 		"/lib/modules",	// access to the modules of the running kernel
 		"/usr/src",	// FIXME: move to SecurityMounts in system-trace interface
 		"/var/log",	// FIXME: move to SecurityMounts in log-observe interface
@@ -241,6 +237,28 @@ void setup_snappy_os_mounts()
 		// NOTE: MS_SLAVE so that the started process cannot maliciously mount
 		// anything into those places and affect the system on the outside.
 		if (mount(src, dst, NULL, MS_BIND | MS_REC | MS_SLAVE, NULL) !=
+		    0) {
+			die("cannot bind mount %s to %s", src, dst);
+		}
+	}
+
+    const char *media_mounts[] = {
+        "/run/media",
+#ifdef MERGED_USR
+#else
+		"/media",	// access to the users removable devices
+#endif				// MERGED_USR
+    };
+	for (int i = 0; i < sizeof(media_mounts) / sizeof *media_mounts; i++) {
+		const char *src = media_mounts[i];
+		char dst[512];
+		must_snprintf(dst, sizeof dst, "%s%s", rootfs_dir,
+			      media_mounts[i]);
+		debug("bind mounting %s to %s", src, dst);
+		// NOTE: MS_REC so that we can see anything that may be mounted under
+		// any of the directories already. This is crucial for /snap, for
+		// example.
+		if (mount(src, dst, NULL, MS_BIND | MS_REC | MS_SHARED, NULL) !=
 		    0) {
 			die("cannot bind mount %s to %s", src, dst);
 		}
